@@ -1,0 +1,43 @@
+Title: Help Our DB Harun 
+Category: Forensics 
+
+Description:An APT group known as “cyber_warrior” recently came under the radar of the Bangladesh Police Detective Branch (DB). After days of surveillance, the DB was able to locate the group's hideout and launched a raid. Unfortunately, none of the group members were apprehended during the operation.
+However, the police managed to seize several of their computers. During the forensic investigation, a DB investigator discovered a suspicious file that appeared to be a corrupted PNG image. Despite efforts to open it, the file could not be identified or viewed properly.
+Your task, as a digital forensics investigator, is to analyze this file, identify its true nature, and attempt to recover any valuable data it may contain.
+
+File link: https://drive.google.com/file/d/1n-jUmoqlX2mL-2YvN56y3dikbH-RoMz6/view?usp=sharing
+
+
+Solution
+
+1. Check file type
+
+# bash 
+$ file "binaryctf2025.1 (1).png"
+binaryctf2025.1 (1).png: OpenPGP Public Key
+
+Observation: The extension is misleading; file reports it as non-PNG (OpenPGP Public Key), indicating the header/magic was modified.
+
+2. Hex head inspection
+
+#bash 
+$ xxd -l 32 "binaryctf2025.1 (1).png"
+00000000: 99ad adac 0d0a 1a0a 0000 000d 4948 4452  ............IHDR
+00000010: 0000 0633 0000 08c5 0806 0000 0022 304e  ...3........."0N
+
+Analysis: The first 4 bytes are altered/masked (99 ad ad ac), but bytes 0d 0a 1a 0a and the IHDR chunk are present. That indicates the PNG chunk structure exists and only the PNG magic signature was tampered with.
+
+3. Repair PNG signature
+Replace the first 8 bytes with the correct PNG signature (magic bytes) without truncating the file:
+
+#bash
+$ printf '\x89\x50\x4E\x47\x0D\x0A\x1A\x0A' | dd of="binaryctf2025.1 (1).png" bs=1 conv=notrunc
+8+0 records in
+8+0 records out
+8 bytes copied
+
+This restores the valid PNG header while keeping the rest of the file intact.
+
+After restoring the PNG header, open the repaired image. Inspection revealed the flag text embedded directly in the image file; no additional decoding or scripts were necessary.
+
+
